@@ -421,8 +421,8 @@ class GitHandler(object):
                 self.import_git_commit(commit, branch)
             else:
 #                print "not added"
-#                pass
-                self.import_git_commit(commit)
+                pass
+#                self.import_git_commit(commit)
 
         util.progress(self.ui, 'import', None, total=total, unit='commits')
 
