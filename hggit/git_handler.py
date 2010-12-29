@@ -1,4 +1,4 @@
-import os, math, urllib, re, string
+import os, urllib, re, string
 
 from dulwich.errors import HangupException
 from dulwich.index import commit_tree
@@ -363,6 +363,8 @@ class GitHandler(object):
             refs = self.git.refs.as_dict()
         if refs:
             for branch, sha in refs.iteritems():
+                #TODO: get create a parse to get git branch name
+                branch = branch.split('/')[-1]
                 # refs contains all the refs in the server, not just the ones
                 # we are pulling
                 if sha in self.git.object_store:
@@ -405,13 +407,30 @@ class GitHandler(object):
         commits = [(branch, commit) for (branch, commit) in commits if not commit in self._map_git]
         # import each of the commits, oldest first
         total = len(commits)
+
+        # TODO: change this method to get all hg named branches
+        # check for hg branches
+        hg_branches = self.get_hg_branches()
+
         for i, (branch, csha) in enumerate(commits):
             util.progress(self.ui, 'import', i, total=total, unit='commits')
             commit = convert_list[csha]
-            # TODO: check if branch is a hg named branch to pass this
-            # information to import_git_commit
-            self.import_git_commit(commit)
+            #print branch
+            if branch in hg_branches:
+                #print "added to", branch
+                self.import_git_commit(commit, branch)
+            else:
+#                print "not added"
+#                pass
+                self.import_git_commit(commit)
+
         util.progress(self.ui, 'import', None, total=total, unit='commits')
+
+    def get_hg_branches(self):
+        current_branchFilePath = os.path.join(self.repo.path, "branch")
+        #print current_branchFilePath
+        current_branch = open(current_branchFilePath).readline().strip()
+        return [current_branch]
 
     def import_git_commit(self, commit, branch=False):
         self.ui.debug(_("importing: %s\n") % commit.id)
