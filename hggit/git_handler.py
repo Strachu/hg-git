@@ -362,7 +362,7 @@ class GitHandler(object):
         if refs is None:
             refs = self.git.refs.as_dict()
         if refs:
-            for sha in refs.itervalues():
+            for branch, sha in refs.iteritems():
                 # refs contains all the refs in the server, not just the ones
                 # we are pulling
                 if sha in self.git.object_store:
@@ -371,12 +371,12 @@ class GitHandler(object):
                         obj_type, sha = obj.object
                         obj = self.git.get_object(sha)
                     if isinstance (obj, Commit) and sha not in seenheads:
-                        seenheads.add(sha)
-                        todo.append(sha)
+                        seenheads.add((branch, sha))
+                        todo.append((branch, sha))
 
         # sort by commit date
-        def commitdate(sha):
-            obj = self.git.get_object(sha)
+        def commitdate(commit):
+            obj = self.git.get_object(commit[1])
             return obj.commit_time-obj.commit_timezone
 
         todo.sort(key=commitdate, reverse=True)
@@ -385,37 +385,45 @@ class GitHandler(object):
         commits = []
         seen = set(todo)
         while todo:
-            sha = todo[-1]
-            if sha in done:
+            (branch, sha) = todo[-1]
+            if (branch, sha) in done:
                 todo.pop()
                 continue
             assert isinstance(sha, str)
             obj = self.git.get_object(sha)
             assert isinstance(obj, Commit)
             for p in obj.parents:
-                if p not in done:
-                    todo.append(p)
+                if (branch, p) not in done:
+                    todo.append((branch, p))
                     break
             else:
-                commits.append(sha)
+                commits.append((branch, sha))
                 convert_list[sha] = obj
-                done.add(sha)
+                done.add((branch, sha))
                 todo.pop()
 
-        commits = [commit for commit in commits if not commit in self._map_git]
+        commits = [(branch, commit) for (branch, commit) in commits if not commit in self._map_git]
         # import each of the commits, oldest first
         total = len(commits)
-        for i, csha in enumerate(commits):
+        for i, (branch, csha) in enumerate(commits):
             util.progress(self.ui, 'import', i, total=total, unit='commits')
             commit = convert_list[csha]
+            # TODO: check if branch is a hg named branch to pass this
+            # information to import_git_commit
             self.import_git_commit(commit)
         util.progress(self.ui, 'import', None, total=total, unit='commits')
 
-    def import_git_commit(self, commit):
+    def import_git_commit(self, commit, branch=False):
         self.ui.debug(_("importing: %s\n") % commit.id)
 
-        (strip_message, hg_renames,
-         hg_branch, extra) = self.extract_hg_metadata(commit.message)
+        c = self.extract_hg_metadata(commit.message)
+        (strip_message, hg_renames, hg_branch, extra) = c
+
+        # check if commit.message provide a named branch and
+        # if actual git brach is a hg named branch to add this
+        # commit to correct branch
+        if not hg_branch and branch:
+            hg_branch = branch
 
         # get a list of the changed, added, removed files
         files = self.get_files_changed(commit)
@@ -804,6 +812,7 @@ class GitHandler(object):
                 command, data = line.split(":", 1)
                 command = string.strip(command)
                 data = string.strip(data)
+
                 if command == 'rename':
                     before, after = data.split(" => ", 1)
                     renames[after] = before
