@@ -801,8 +801,7 @@ class GitHandler(object):
                 if line == '':
                     continue
 
-                command, data = line.split(" : ", 1)
-
+                command, data = line.split(":", 1)
                 if command == 'rename':
                     before, after = data.split(" => ", 1)
                     renames[after] = before
