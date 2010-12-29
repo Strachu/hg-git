@@ -1,4 +1,4 @@
-import os, math, urllib, re
+import os, math, urllib, re, string
 
 from dulwich.errors import HangupException
 from dulwich.index import commit_tree
@@ -802,6 +802,8 @@ class GitHandler(object):
                     continue
 
                 command, data = line.split(":", 1)
+                command = string.strip(command)
+                data = string.strip(data)
                 if command == 'rename':
                     before, after = data.split(" => ", 1)
                     renames[after] = before
