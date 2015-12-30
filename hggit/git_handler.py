@@ -700,13 +700,12 @@ class GitHandler(object):
         commit_cache = result.commit_cache
         # import each of the commits, oldest first
         total = len(commits)
+		
         if total:
             self.ui.status(_("importing git objects into hg\n"))
         else:
             self.ui.status(_("no changes found\n"))
 
-        # TODO: change this method to get all hg named branches
-        # check for hg branches
         hg_branches = self.get_hg_branches()
 
         mapsavefreq = self.ui.configint('hggit', 'mapsavefrequency', 0)
@@ -714,10 +713,8 @@ class GitHandler(object):
             self.ui.progress('importing', i, total=total, unit='commits')
             commit = commit_cache[csha]
             
-            print branch
             if branch in hg_branches:
-                print "added to", branch
-                    self.import_git_commit(commit, branch)
+                self.import_git_commit(commit, branch)
             else:
                 pass
                 
@@ -730,10 +727,14 @@ class GitHandler(object):
         return total
 
     def get_hg_branches(self):
-        current_branchFilePath = os.path.join(self.repo.path, "branch")
-        #print current_branchFilePath
-        current_branch = open(current_branchFilePath).readline().strip()
-        return [current_branch]
+        current_branchFilePath = os.path.join(self.repo.path, "cache", "branch2-served")
+
+        with open(current_branchFilePath) as ins:
+            branches = []
+            for line in ins:
+                branches.append(line.strip().split()[-1])
+				
+        return branches
 
     def import_git_commit(self, commit, branch=False):
         self.ui.debug(_("importing: %s\n") % commit.id)
@@ -743,8 +744,7 @@ class GitHandler(object):
          hg_branch, extra) = git2hg.extract_hg_metadata(
              commit.message, commit.extra)
              
-        print "strip_message", strip_message
-        print "hg_branch", hg_branch
+        print "Importing %s into %s" % (strip_message, hg_branch)
              
         # check if commit.message provide a named branch and
         # if actual git brach is a hg named branch to add this

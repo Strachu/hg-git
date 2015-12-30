@@ -23,9 +23,9 @@ def find_incoming(git_object_store, git_map, refs):
         todo = []
         seenheads = set()
         for branch, sha in refs.iteritems():
-            print "Branch przed %s." % branch
+			  
             branch = branch.split('/')[-1]
-            print "Branch po splicie %s." % branch
+            
             # refs could contain refs on the server that we haven't pulled down
             # the objects for
             if sha in git_object_store:
