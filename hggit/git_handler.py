@@ -705,11 +705,22 @@ class GitHandler(object):
         else:
             self.ui.status(_("no changes found\n"))
 
+        # TODO: change this method to get all hg named branches
+        # check for hg branches
+        hg_branches = self.get_hg_branches()
+
         mapsavefreq = self.ui.configint('hggit', 'mapsavefrequency', 0)
-        for i, csha in enumerate(commits):
+        for i, (branch, csha) in enumerate(commits):
             self.ui.progress('importing', i, total=total, unit='commits')
             commit = commit_cache[csha]
-            self.import_git_commit(commit)
+            
+            print branch
+            if branch in hg_branches:
+                print "added to", branch
+                    self.import_git_commit(commit, branch)
+            else:
+                pass
+                
             if mapsavefreq and i % mapsavefreq == 0:
                 self.ui.debug(_("saving mapfile\n"))
                 self.save_map(self.map_file)
@@ -718,13 +729,29 @@ class GitHandler(object):
         # TODO if the tags cache is used, remove any dangling tag references
         return total
 
-    def import_git_commit(self, commit):
+    def get_hg_branches(self):
+        current_branchFilePath = os.path.join(self.repo.path, "branch")
+        #print current_branchFilePath
+        current_branch = open(current_branchFilePath).readline().strip()
+        return [current_branch]
+
+    def import_git_commit(self, commit, branch=False):
         self.ui.debug(_("importing: %s\n") % commit.id)
 
         detect_renames = False
         (strip_message, hg_renames,
          hg_branch, extra) = git2hg.extract_hg_metadata(
              commit.message, commit.extra)
+             
+        print "strip_message", strip_message
+        print "hg_branch", hg_branch
+             
+        # check if commit.message provide a named branch and
+        # if actual git brach is a hg named branch to add this
+        # commit to correct branch
+        if not hg_branch and branch:
+            hg_branch = branch
+            
         if hg_renames is None:
             detect_renames = True
             # We have to store this unconditionally, even if there are no

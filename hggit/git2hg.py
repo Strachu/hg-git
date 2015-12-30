@@ -14,15 +14,18 @@ def find_incoming(git_object_store, git_map, refs):
     commit_cache = {}
 
     # sort by commit date
-    def commitdate(sha):
-        obj = git_object_store[sha]
+    def commitdate(commit):
+        obj = git_object_store[commit[1]]
         return obj.commit_time-obj.commit_timezone
 
     # get a list of all the head shas
     def get_heads(refs):
         todo = []
         seenheads = set()
-        for sha in refs.itervalues():
+        for branch, sha in refs.iteritems():
+            print "Branch przed %s." % branch
+            branch = branch.split('/')[-1]
+            print "Branch po splicie %s." % branch
             # refs could contain refs on the server that we haven't pulled down
             # the objects for
             if sha in git_object_store:
@@ -31,8 +34,8 @@ def find_incoming(git_object_store, git_map, refs):
                     obj_type, sha = obj.object
                     obj = git_object_store[sha]
                 if isinstance(obj, Commit) and sha not in seenheads:
-                    seenheads.add(sha)
-                    todo.append(sha)
+                    seenheads.add((branch, sha))
+                    todo.append((branch, sha))
 
         todo.sort(key=commitdate, reverse=True)
         return todo
@@ -44,8 +47,8 @@ def find_incoming(git_object_store, git_map, refs):
         Mutates todo and the done set in the process.'''
         commits = []
         while todo:
-            sha = todo[-1]
-            if sha in done or sha in git_map:
+            (branch, sha) = todo[-1]
+            if (branch, sha) in done or sha in git_map:
                 todo.pop()
                 continue
             assert isinstance(sha, str)
@@ -56,17 +59,17 @@ def find_incoming(git_object_store, git_map, refs):
                 commit_cache[sha] = obj
             assert isinstance(obj, Commit)
             for p in obj.parents:
-                if p not in done and p not in git_map:
-                    todo.append(p)
+                if (branch, p) not in done and p not in git_map:
+                    todo.append((branch, p))
                     # process parents of a commit before processing the
                     # commit itself, and come back to this commit later
                     break
             else:
-                commits.append(sha)
-                done.add(sha)
+                commits.append((branch, sha))
+                done.add((branch, sha))
                 todo.pop()
 
-        return commits
+        return [(branch, commit) for (branch, commit) in commits]
 
     todo = get_heads(refs)
     commits = get_unseen_commits(todo)
