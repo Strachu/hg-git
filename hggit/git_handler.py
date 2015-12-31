@@ -713,7 +713,10 @@ class GitHandler(object):
             self.ui.progress('importing', i, total=total, unit='commits')
             commit = commit_cache[csha]
             
-            if branch in hg_branches:
+            is_new_branch = 'hg/new_branch/' in branch
+            branch = branch.split('/')[-1]
+			
+            if branch in hg_branches or is_new_branch:
                 self.import_git_commit(commit, branch)
             else:
                 pass
