@@ -46,7 +46,8 @@ def find_incoming(git_object_store, git_map, refs):
         commits = []
         while todo:
             (branch, sha) = todo[-1]
-            if (branch, sha) in done or sha in git_map:
+
+            if sha in done or sha in git_map:
                 todo.pop()
                 continue
             assert isinstance(sha, str)
@@ -57,14 +58,14 @@ def find_incoming(git_object_store, git_map, refs):
                 commit_cache[sha] = obj
             assert isinstance(obj, Commit)
             for p in obj.parents:
-                if (branch, p) not in done and p not in git_map:
+                if p not in done and p not in git_map:
                     todo.append((branch, p))
                     # process parents of a commit before processing the
                     # commit itself, and come back to this commit later
                     break
             else:
                 commits.append((branch, sha))
-                done.add((branch, sha))
+                done.add(sha)
                 todo.pop()
 
         return [(branch, commit) for (branch, commit) in commits]
