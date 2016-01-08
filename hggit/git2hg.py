@@ -46,8 +46,8 @@ def find_incoming(git_object_store, git_map, refs):
         commits = []
         while todo:
             (branch, sha) = todo[-1]
-
-            if sha in done or sha in git_map:
+            
+            if sha in done or sha in git_map or branch == "HEAD":
                 todo.pop()
                 continue
             assert isinstance(sha, str)

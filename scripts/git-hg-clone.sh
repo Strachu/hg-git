@@ -2,8 +2,10 @@
 
 ExportAllBranchesAsBookmarks()
 {
-	branches=`hg branches | cut -d' ' -f 1`
+	branches=`hg branches | sed "s/   */\t/g" | cut -f 1`
 
+	IFS=$'\n'
+	
 	for branch in $branches
 	do
 	  hg bookmark hg/$branch -r $branch
@@ -12,7 +14,9 @@ ExportAllBranchesAsBookmarks()
 
 ImportAllBranchesToGit()
 {
-	branches=`hg branches | cut -d' ' -f 1`
+	branches=`hg branches | sed "s/   */\t/g" | cut -f 1`
+
+	IFS=$'\n'
 
 	for branch in $branches
 	do

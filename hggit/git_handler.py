@@ -715,7 +715,9 @@ class GitHandler(object):
             
             is_new_branch = 'hg/new_branch/' in branch
             branch = branch.split('/')[-1]
-			
+            
+            branch = branch.replace("__space__", " ")
+            
             if branch in hg_branches or is_new_branch:
                 self.import_git_commit(commit, branch)
             else:
@@ -735,7 +737,8 @@ class GitHandler(object):
         with open(current_branchFilePath) as ins:
             branches = []
             for line in ins:
-                branches.append(line.strip().split()[-1])
+                branch = line.split("o")[-1].strip()
+                branches.append(branch)
 				
         return branches
 
@@ -1218,6 +1221,9 @@ class GitHandler(object):
         # Mercurial bookmark.
         for hg_sha, refs in exportable.iteritems():
             for git_ref in refs.heads:
+
+                git_ref = git_ref.replace(" ", "__space__")
+
                 git_sha = self.map_git_get(hg_sha)
                 if git_sha:
                     self.git.refs[git_ref] = git_sha
