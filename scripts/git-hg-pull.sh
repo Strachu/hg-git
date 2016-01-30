@@ -1,18 +1,13 @@
 #!/bin/bash
 
-branches=`hg branches | cut -d' ' -f 1`
+scripts_dir=`dirname $0`
 
-hg pull
+bash $scripts_dir/git-hg-fetch.sh
+
+branches=`hg branches | cut -d' ' -f 1`
 
 for branch in $branches
 do
-  hg bookmark -f hg/$branch -r $branch
+  git checkout $branch
+  git merge hg/$branch
 done
-
-hg gexport
-
-#for branch in $branches
-#do
-#  git checkout $branch
-#  git merge hg/$branch
-#done

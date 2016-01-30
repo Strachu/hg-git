@@ -43,8 +43,8 @@ hg gexport
 git config core.bare false
 git config core.worktree "$current_dir"
 
-#ImportAllBranchesToGit
-git checkout hg/default
+ImportAllBranchesToGit
+git checkout master
 git reset --hard
 
 echo '[ui]' >> .hg/hgrc
