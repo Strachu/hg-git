@@ -25,7 +25,8 @@ ImportAllBranchesToGit()
 	
 	git branch master hg/default
 }
- 
+
+scripts_dir=`dirname $0`
 repo_dir=`basename $1`
 
 hg clone -U $1
@@ -46,7 +47,8 @@ git config core.worktree "$current_dir"
 git checkout hg/default
 git reset --hard
 
-echo '.hg' >> .git/info/exclude
 echo '[ui]' >> .hg/hgrc
 echo 'ignore = "$current_dir/.hg/hgignore"' >> .hg/hgrc
 echo '.git' >> .hg/hgignore
+
+bash $scripts_dir/git-hg-ignore-update.sh
