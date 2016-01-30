@@ -4,9 +4,11 @@
 #
 # incomplete, implemented on demand
 
-from mercurial import ancestor
-from mercurial import manifest
-from mercurial import context
+from mercurial import (
+    ancestor,
+    manifest,
+    context,
+)
 from mercurial.node import bin, hex, nullid
 
 def _maybehex(n):
@@ -240,7 +242,7 @@ class overlaychangectx(context.changectx):
         try:
             from mercurial import phases
             return phases.draft
-        except ImportError:
+        except (AttributeError, ImportError):
             return 1
 
     def totuple(self):
@@ -346,7 +348,7 @@ class overlayrepo(object):
             # Mercurial >= 3.3
             from mercurial import namespaces
             self.names = namespaces.namespaces()
-        except ImportError:
+        except (AttributeError, ImportError):
             pass
 
     def __getitem__(self, n):

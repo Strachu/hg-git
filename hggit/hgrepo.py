@@ -1,6 +1,8 @@
-from mercurial import localrepo
+from mercurial import (
+    util as hgutil,
+    localrepo,
+)
 from mercurial.node import bin
-from mercurial import util as hgutil
 
 from git_handler import GitHandler
 from gitrepo import gitrepo
@@ -43,9 +45,15 @@ def generate_repo_subclass(baseclass):
             (tags, tagtypes) = super(hgrepo, self)._findtags()
 
             for tag, rev in self.githandler.tags.iteritems():
+                if isinstance(tag, unicode):
+                    tag = tag.encode('utf-8')
                 tags[tag] = bin(rev)
                 tagtypes[tag] = 'git'
-
+            for tag, rev in self.githandler.remote_refs.iteritems():
+                if isinstance(tag, unicode):
+                    tag = tag.encode('utf-8')
+                tags[tag] = rev
+                tagtypes[tag] = 'git-remote'
             tags.update(self.githandler.remote_refs)
             return (tags, tagtypes)
 

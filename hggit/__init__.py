@@ -29,28 +29,30 @@ import util
 
 from bisect import insort
 from git_handler import GitHandler
-from mercurial import bundlerepo
-from mercurial import cmdutil
-from mercurial import demandimport
-from mercurial import dirstate
-from mercurial import discovery
-from mercurial import extensions
-from mercurial import help
-from mercurial import hg
-from mercurial import localrepo
-from mercurial import manifest
-from mercurial import revset
-from mercurial import scmutil
-from mercurial import templatekw
-from mercurial import ui as hgui
-from mercurial import util as hgutil
 from mercurial.node import hex
 from mercurial.i18n import _
+from mercurial import (
+    bundlerepo,
+    cmdutil,
+    demandimport,
+    dirstate,
+    discovery,
+    extensions,
+    help,
+    hg,
+    ui as hgui,
+    util as hgutil,
+    localrepo,
+    manifest,
+    revset,
+    scmutil,
+    templatekw,
+)
 
 try:
     from mercurial import exchange
     exchange.push  # existed in first iteration of this file
-except ImportError:
+except (AttributeError, ImportError):
     # We only *use* the exchange module in hg 3.2+, so this is safe
     pass
 
@@ -58,7 +60,7 @@ try:
     from mercurial import ignore
     ignore.readpats
     ignoremod = True
-except ImportError:
+except (AttributeError, ImportError):
     # The ignore module disappeared in Mercurial 3.5
     ignoremod = False
 
@@ -74,7 +76,7 @@ demandimport.ignore.extend([
     'collections',
 ])
 
-__version__ = '0.8.3'
+__version__ = '0.8.4'
 
 testedwith = '2.8.2 3.0.1 3.1 3.2.2 3.3 3.4 3.5 3.6'
 buglink = 'https://bitbucket.org/durin42/hg-git/issues'
@@ -203,6 +205,17 @@ def extsetup(ui):
 
 def reposetup(ui, repo):
     if not isinstance(repo, gitrepo.gitrepo):
+
+        if (getattr(dirstate, 'rootcache', False) and
+            (not ignoremod or getattr(ignore, 'readpats', False))):
+            # only install our dirstate wrapper if it has a hope of working
+            import gitdirstate
+            if ignoremod:
+                def ignorewrap(orig, *args, **kwargs):
+                    return gitdirstate.gignore(*args, **kwargs)
+                extensions.wrapfunction(ignore, 'ignore', ignorewrap)
+            dirstate.dirstate = gitdirstate.gitdirstate
+
         klass = hgrepo.generate_repo_subclass(repo.__class__)
         repo.__class__ = klass
 
@@ -240,16 +253,6 @@ def gverify(ui, repo, **opts):
     '''
     ctx = scmutil.revsingle(repo, opts.get('rev'), '.')
     return verify.verify(ui, repo, ctx)
-
-if (getattr(dirstate, 'rootcache', False) and
-    (not ignoremod or getattr(ignore, 'readpats', False))):
-    # only install our dirstate wrapper if it has a hope of working
-    import gitdirstate
-    if ignoremod:
-        def ignorewrap(orig, *args, **kwargs):
-            return gitdirstate.gignore(*args, **kwargs)
-        extensions.wrapfunction(ignore, 'ignore', ignorewrap)
-    dirstate.dirstate = gitdirstate.gitdirstate
 
 @command('git-cleanup')
 def git_cleanup(ui, repo):

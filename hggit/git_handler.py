@@ -17,10 +17,14 @@ from dulwich import diff_tree
 
 from mercurial.i18n import _
 from mercurial.node import hex, bin, nullid
-from mercurial import bookmarks
-from mercurial import commands
-from mercurial import context, util as hgutil
-from mercurial import url
+from mercurial import (
+    bookmarks,
+    commands,
+    context,
+    encoding,
+    util as hgutil,
+    url,
+)
 
 import _ssh
 import git2hg
@@ -48,6 +52,8 @@ RE_NEWLINES = re.compile('[\r\n]')
 RE_GIT_PROGRESS = re.compile('\((\d+)/(\d+)\)')
 
 RE_AUTHOR_FILE = re.compile('\s*=\s*')
+
+CALLBACK_BUFFER = ''
 
 class GitProgress(object):
     """convert git server progress strings into mercurial progress"""
@@ -135,12 +141,19 @@ class GitHandler(object):
 
     @hgutil.propertycache
     def git(self):
+        # Dulwich is going to try and join unicode ref names against
+        # the repository path to try and read unpacked refs. This
+        # doesn't match hg's bytes-only view of filesystems, we just
+        # have to cope with that. As a workaround, try decoding our
+        # (bytes) path to the repo in hg's active encoding and hope
+        # for the best.
+        gitpath = self.gitdir.decode(encoding.encoding, encoding.encodingmode)
         # make the git data directory
         if os.path.exists(self.gitdir):
-            return Repo(self.gitdir)
+            return Repo(gitpath)
         else:
             os.mkdir(self.gitdir)
-            return Repo.init_bare(self.gitdir)
+            return Repo.init_bare(gitpath)
 
     def init_author_file(self):
         self.author_map = {}
@@ -1024,8 +1037,25 @@ class GitHandler(object):
                 self.ui.status(_("adding objects\n"))
             return self.git.object_store.generate_pack_contents(have, want)
 
+        def callback(remote_info):
+            # dulwich (perhaps git?) wraps remote output at a fixed width but
+            # signifies the end of transmission with a double new line
+            global CALLBACK_BUFFER
+            if remote_info and not remote_info.endswith('\n\n'):
+                CALLBACK_BUFFER += remote_info
+                return
+
+            remote_info = CALLBACK_BUFFER + remote_info
+            CALLBACK_BUFFER = ''
+            if not remote_info:
+                remote_info = '\n'
+
+            for line in remote_info[:-1].split('\n'):
+                self.ui.status(_("remote: %s\n") % line)
+
         try:
-            new_refs = client.send_pack(path, changed, genpack)
+            new_refs = client.send_pack(path, changed, genpack,
+                                        progress=callback)
             if len(change_totals) > 0:
                 self.ui.status(_("added %d commits with %d trees"
                                  " and %d blobs\n") %
@@ -1337,11 +1367,7 @@ class GitHandler(object):
                         bms[head + suffix] = hgsha
 
             if heads:
-                wlock = self.repo.wlock()
-                try:
-                    bms.write()
-                finally:
-                    wlock.release()
+                util.recordbookmarks(self.repo, bms)
 
         except AttributeError:
             self.ui.warn(_('creating bookmarks failed, do you have'
@@ -1554,7 +1580,7 @@ class GitHandler(object):
             from mercurial import encoding
             old = encoding.encoding
             encoding.encoding = new_encoding
-        except ImportError:
+        except (AttributeError, ImportError):
             old = hgutil._encoding
             hgutil._encoding = new_encoding
         return old
