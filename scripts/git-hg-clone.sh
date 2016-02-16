@@ -22,8 +22,6 @@ ImportAllBranchesToGit()
 	do
 	  git branch $branch hg/$branch
 	done
-	
-	git branch master hg/default
 }
 
 scripts_dir=`dirname $0`
@@ -44,7 +42,6 @@ git config core.bare false
 git config core.worktree "$current_dir"
 
 ImportAllBranchesToGit
-git checkout master
 git reset --hard
 
 echo '[ui]' >> .hg/hgrc
