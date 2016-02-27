@@ -708,6 +708,8 @@ class GitHandler(object):
         return git2hg.find_incoming(self.git.object_store, self._map_git, refs)
 
     def import_git_objects(self, remote_name, refs):
+        hg_branches = self.get_hg_branches()
+
         result = self.get_git_incoming(refs)
         commits = result.commits
         commit_cache = result.commit_cache
@@ -718,8 +720,6 @@ class GitHandler(object):
             self.ui.status(_("importing git objects into hg\n"))
         else:
             self.ui.status(_("no changes found\n"))
-
-        hg_branches = self.get_hg_branches()
 
         mapsavefreq = self.ui.configint('hggit', 'mapsavefrequency', 0)
         for i, (branch, csha) in enumerate(commits):
@@ -750,10 +750,22 @@ class GitHandler(object):
         with open(current_branchFilePath) as ins:
             branches = []
             for line in ins:
-                branch = line.split("o")[-1].strip()
+                branch = line.split(" o ")[-1].strip()
                 branches.append(branch)
-				
+
+        self.print_examined_branches(branches)
+
         return branches
+
+    def print_examined_branches(self, branches):
+
+        print
+        print "Examined hg branches: "
+
+        for branch in branches:
+			  print branch
+
+        print
 
     def import_git_commit(self, commit, branch=False):
         self.ui.debug(_("importing: %s\n") % commit.id)
