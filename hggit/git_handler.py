@@ -717,7 +717,7 @@ class GitHandler(object):
         total = len(commits)
 		
         if total:
-            self.ui.status(_("importing git objects into hg\n"))
+            print "importing git objects into hg\n"
         else:
             self.ui.status(_("no changes found\n"))
 
@@ -768,14 +768,14 @@ class GitHandler(object):
         print
 
     def import_git_commit(self, commit, branch=False):
-        self.ui.debug(_("importing: %s\n") % commit.id)
+        self.ui.debug(_("importing: %s:\n") % commit.id)
 
         detect_renames = False
         (strip_message, hg_renames,
          hg_branch, extra) = git2hg.extract_hg_metadata(
              commit.message, commit.extra)
              
-        print "Importing %s into %s" % (strip_message, hg_branch)
+        print "Importing commit \"%s\" into %s" % (strip_message.strip(), branch)
              
         # check if commit.message provide a named branch and
         # if actual git brach is a hg named branch to add this
