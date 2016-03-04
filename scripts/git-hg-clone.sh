@@ -42,7 +42,7 @@ git config core.bare false
 git config core.worktree "$current_dir"
 
 ImportAllBranchesToGit
-git reset --hard
+git checkout default
 
 echo '[ui]' >> .hg/hgrc
 echo 'ignore = "$current_dir/.hg/hgignore"' >> .hg/hgrc
