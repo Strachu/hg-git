@@ -1,8 +1,8 @@
 #!/bin/bash
 
-branches=`hg branches | cut -d' ' -f 1`
-
 hg pull
+
+branches=`hg branches | cut -d' ' -f 1`
 
 for branch in $branches
 do
